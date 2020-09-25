@@ -1,16 +1,24 @@
 # Imports
-from flask import Flask                 # general web development
-from flask import render_template       # render html5 templates
-from flask import request               #
-from flask import redirect              #
-from flask_sqlalchemy import SQLAlchemy # create sqlite databases using python3
+from flask import Flask                 
+from flask import render_template       
+from flask import request               
+from flask import redirect              
+import os 
+from flask_sqlalchemy import SQLAlchemy
+
+# Establish google cloud database
+database = (
+    #mysql+pymysql://<db_user>:<db_pass>@/<db_name>?unix_socket=<socket_path>/<cloud_sql_connection_name>
+    'mysql+pymysql://{name}:{password}@/{dbname}?unix_socket=/cloudsql/{connection}').format(
+        name       = os.environ['DB_USER'], 
+        password   = os.environ['DB_PASS'],
+        dbname     = os.environ['DB_NAME'],
+        connection = os.environ['DB_CONNECTION_NAME']
+        )
 
 # create the flask application object
 app = Flask(__name__)
-
-# create a database and link it to the app
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///brokenlaptop.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = database
 db = SQLAlchemy(app)
 
 # create a table of broken laptops
@@ -28,6 +36,12 @@ class BrokenLaptop(db.Model):
 # Delete - will delete a single entry of a broken laptop        #
 #################################################################
 
+@app.route('/')
+def init():    
+    db.drop_all()
+    db.create_all()
+    return redirect('/read')
+
 @app.route('/create', methods=['GET','POST'])
 def create():
     if request.form:
@@ -39,13 +53,13 @@ def create():
     
     # display inventory    
     inventory = BrokenLaptop.query.all()    
-    return render_template("create.html", inventory = inventory)
+    return render_template("create.html", inventory = inventory, title = "Add Broken Laptop to Inventory")
     
-@app.route('/')
+@app.route('/read')
 def read():
     # Display all broken laptops in inventory
     inventory = BrokenLaptop.query.all()
-    return render_template("read.html", inventory = inventory )
+    return render_template("read.html", inventory = inventory, title = "Broken Laptop Inventory" )
     
 @app.route('/update/<laptop_id>', methods=['GET','POST'])
 def update(laptop_id):
@@ -55,13 +69,19 @@ def update(laptop_id):
         laptop.price = request.form.get("price")
         db.session.commit()
          
-    return render_template("update.html", brokenlaptop = laptop)
+    return render_template("update.html", brokenlaptop = laptop, title = "Update Broken Laptop")
+
+
+@app.route('/delete_request/<laptop_id>')
+def delete_request(laptop_id):
+    return render_template("delete_confirmation.html", title = "Are you sure you want to delete this laptop?", laptop_id = laptop_id)
 
 @app.route('/delete/<laptop_id>')
 def delete(laptop_id):
-    db.session.delete(BrokenLaptop.query.get(laptop_id))
+    laptop = BrokenLaptop.query.get(laptop_id)
+    db.session.delete(laptop)
     db.session.commit()
-    return redirect("/")
+    return redirect('/read')
     
 if __name__ == '__main__':
     app.run(debug=True)

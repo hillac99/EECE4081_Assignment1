@@ -16,13 +16,9 @@
   
   <h1>{{ title }}</h1>
   
-  <form method="POST" action="/update/{{brokenlaptop.id}}">
-  <input name="brand" type="text" value = {{brokenlaptop.brand}}>
-  <input name="price" type="text" value = {{brokenlaptop.price}}>
-  <input type="submit" value="Update">
-  </form>
   
-  <button> <a href="/read">Back to Inventory Page</a>  </button>
+<button> <a href="/delete/{{laptop_id}}">Yes</a> </button>
+<button> <a href="/read">No</a> </button>
 
 
     <!-- Optional JavaScript -->
